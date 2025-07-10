@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus Time Alarm</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+        
+        .flip-clock {
+            font-family: 'Orbitron', sans-serif;
+            perspective: 1000px;
+        }
+        
+        .flip-unit {
+            position: relative;
+            width: 60px;
+            height: 90px;
+            margin: 0 5px;
+            border-radius: 8px;
+            background: #111827;
+            color: white;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        .flip-digit {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem;
+            font-weight: bold;
+        }
+        
+        .flip-digit.front {
+            z-index: 2;
+            background: #1F2937;
+            transform-origin: bottom;
+            animation: flip-down 0.5s ease-in;
+        }
+        
+        .flip-digit.back {
+            z-index: 1;
+            background: #1F2937;
+            transform: rotateX(90deg);
+            transform-origin: bottom;
+        }
+        
+        @keyframes flip-down {
+            from { transform: rotateX(0deg); }
+            to { transform: rotateX(-90deg); }
+        }
+        
+        .colon {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            color: #4B5563;
+            margin: 0 5px;
+        }
+        
+        .ringtone-option {
+            transition: all 0.2s;
+        }
+        
+        .ringtone-option:hover {
+            transform: scale(1.05);
+            background-color: #E5E7EB !important;
+        }
+        
+        .ringtone-option.selected {
+            background-color: #DBEAFE !important;
+            border-color: #3B82F6 !important;
+        }
+        
+        .alarm-item {
+            transition: all 0.3s;
+        }
+        
+        .alarm-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .glow {
+            animation: glow 1s infinite alternate;
+        }
+        
+        @keyframes glow {
+            from {
+                box-shadow: 0 0 5px -5px #3B82F6;
+            }
+            to {
+                box-shadow: 0 0 20px 5px #3B82F6;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center py-10 px-4">
+    <div class="max-w-2xl w-full">
+       
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-blue-400 mb-2">FOCUS TIME</h1>
+            <p class="text-gray-400">Stay productive with precision timing</p>
+        </div>
+        
+    
+        <div class="flex justify-center mb-10">
+            <div id="simple-clock" class="text-6xl font-mono font-bold text-blue-200 bg-gray-800 px-8 py-4 rounded-lg shadow-lg"></div>
+        </div>
+        <div class="text-center text-xl mb-10">
+            <div id="current-date" class="text-gray-300"></div>
+        </div>
+        <div class="bg-gray-800 rounded-xl p-6 mb-8 shadow-lg">
+            <h2 class="text-2xl font-semibold mb-4 text-blue-400">Set New Alarm</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-gray-300 mb-2">Alarm Title</label>
+                    <input type="text" id="alarm-title" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Wake Up, Meeting, etc.">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-300 mb-2">Date</label>
+                        <input type="date" id="alarm-date" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-300 mb-2">Time</label>
+                        <input type="time" id="alarm-time" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+                <button id="set-alarm" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center">
+                    <i class="fas fa-plus-circle mr-2"></i> Set Alarm
+                </button>
+            </div>
+        </div>
+        <div class="bg-gray-800 rounded-xl p-6 shadow-lg">
+            <div class="flex justify-between items-center mb-4">
+                <p class="text-small font-semibold text-blue-400">You can customize alarm sound and snooze settings via settings.</p>
+                <button id="settings-btn" class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-700 transition">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+            
+            <div id="alarm-list" class="space-y-3">
+                <div class="text-center text-gray-500 py-6" id="no-alarms-message">
+                    No alarms set yet. Add your first alarm above!
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="settings-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4 shadow-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-blue-400">Settings</h3>
+                <button id="close-settings" class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-700 transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-6">
+                <div>
+                    <h4 class="text-lg font-medium mb-3 text-gray-300">Snooze Duration</h4>
+                    <select id="snooze-duration" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="5">5 minutes</option>
+                        <option value="10" selected>10 minutes</option>
+                        <option value="15">15 minutes</option>
+                        <option value="30">30 minutes</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-medium mb-3 text-gray-300">Alarm Sound</h4>
+                    <div class="space-y-2">
+                        <div class="ringtone-option p-3 border border-gray-600 rounded-lg cursor-pointer flex items-center" data-sound="bell">
+                            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-music text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <div class="font-medium">Birds-chirping</div>
+                                <div class="text-sm text-gray-400">Beautiful Alarm Sound</div>
+                            </div>
+                        </div>
+                        <div class="ringtone-option p-3 border border-gray-600 rounded-lg cursor-pointer flex items-center" data-sound="digital">
+                            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-music text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <div class="font-medium">River-flowing</div>
+                                <div class="text-sm text-gray-400">Nature alarm</div>
+                            </div>
+                        </div>
+                        <div class="ringtone-option p-3 border border-gray-600 rounded-lg cursor-pointer flex items-center" data-sound="nature">
+                            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-music text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <div class="font-medium">Relaxing-guitar</div>
+                                <div class="text-sm text-gray-400">Musical wake-up</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="pt-2">
+                    <button id="save-settings" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200">
+                        Save Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <audio id="bell" src="birds-chirping-calm-173695.mp3" preload="auto"></audio>
+    <audio id="digital" src="calm-zen-river-flowing-228223.mp3" preload="auto"></audio>
+    <audio id="nature" src="relaxing-guitar-128296.mp3" preload="auto"></audio>
+    
+    <script>
+        const flipDigits = {
+            hoursTens: document.getElementById('hours-tens'),
+            hoursOnes: document.getElementById('hours-ones'),
+            minutesTens: document.getElementById('minutes-tens'),
+            minutesOnes: document.getElementById('minutes-ones'),
+            secondsTens: document.getElementById('seconds-tens'),
+            secondsOnes: document.getElementById('seconds-ones'),
+            hoursTensBack: document.getElementById('hours-tens-back'),
+            hoursOnesBack: document.getElementById('hours-ones-back'),
+            minutesTensBack: document.getElementById('minutes-tens-back'),
+            minutesOnesBack: document.getElementById('minutes-ones-back'),
+            secondsTensBack: document.getElementById('seconds-tens-back'),
+            secondsOnesBack: document.getElementById('seconds-ones-back')
+        };
+        
+        const currentDateElement = document.getElementById('current-date');
+        const alarmTitleInput = document.getElementById('alarm-title');
+        const alarmDateInput = document.getElementById('alarm-date');
+        const alarmTimeInput = document.getElementById('alarm-time');
+        const setAlarmButton = document.getElementById('set-alarm');
+        const alarmListElement = document.getElementById('alarm-list');
+        const noAlarmsMessage = document.getElementById('no-alarms-message');
+        const settingsButton = document.getElementById('settings-btn');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeSettingsButton = document.getElementById('close-settings');
+        const saveSettingsButton = document.getElementById('save-settings');
+        const snoozeDurationSelect = document.getElementById('snooze-duration');
+        const ringtoneOptions = document.querySelectorAll('.ringtone-option');
+        
+        const alarmSounds = {
+            bell: document.getElementById('bell'),
+            digital: document.getElementById('digital'),
+            nature: document.getElementById('nature')
+        };
+        let alarms = [];
+        let settings = {
+            snoozeDuration: 10,
+            selectedSound: 'bell'
+        };
+        
+        let currentAlarmSound = null;
+        let snoozeTimeout = null;
+        function init() {
+            const now = new Date();
+            const today = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0');
+            const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+            alarmDateInput.min = today;
+            alarmDateInput.value = today;
+            alarmTimeInput.value = currentTime;
+            loadSettings();
+            
+            updateClock();
+            setInterval(updateClock, 1000);
+            loadAlarms();
+            setupEventListeners();
+        }
+        function setupEventListeners() {
+            setAlarmButton.addEventListener('click', addAlarm);
+            
+            settingsButton.addEventListener('click', () => {
+                settingsModal.classList.remove('hidden');
+            });
+            
+            closeSettingsButton.addEventListener('click', () => {
+                settingsModal.classList.add('hidden');
+            });
+            
+            saveSettingsButton.addEventListener('click', saveSettings);
+            
+            ringtoneOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    ringtoneOptions.forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
+                    settings.selectedSound = option.dataset.sound;
+                });
+            });
+            alarmTitleInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    addAlarm();
+                }
+            });
+        }
+        function updateClock() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            document.getElementById('simple-clock').textContent = `${hours}:${minutes}:${seconds}`;
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            currentDateElement.textContent = now.toLocaleDateString(undefined, options);
+            checkAlarms(now);
+        }
+        function updateFlipDigit(front, back, newValue) {
+            if (front.textContent !== newValue) {
+                back.textContent = front.textContent;
+                front.textContent = newValue;
+                front.style.animation = 'none';
+                void front.offsetWidth; 
+                front.style.animation = 'flip-down 0.5s ease-in';
+            }
+        }
+        function addAlarm() {
+            const title = alarmTitleInput.value.trim();
+            const date = alarmDateInput.value;
+            const time = alarmTimeInput.value;
+            
+            if (!title) {
+                alert('Please enter an alarm title');
+                return;
+            }
+            
+            if (!date || !time) {
+                alert('Please select both date and time');
+                return;
+            }
+            const alarmDateTime = new Date(`${date}T${time}`);
+            const now = new Date();
+            
+            if (alarmDateTime <= now) {
+                alert('Please select a future time for the alarm');
+                return;
+            }
+            
+            const newAlarm = {
+                id: Date.now().toString(),
+                title,
+                date,
+                time,
+                active: true,
+                triggered: false
+            };
+            
+            alarms.push(newAlarm);
+            saveAlarms();
+            renderAlarms();
+            alarmTitleInput.value = '';
+            const nowReset = new Date();
+            const todayReset = nowReset.getFullYear() + '-' +
+    String(nowReset.getMonth() + 1).padStart(2, '0') + '-' +
+    String(nowReset.getDate()).padStart(2, '0');
+            alarmDateInput.min = todayReset;
+            alarmDateInput.value = todayReset;
+            alarmTimeInput.value = `${nowReset.getHours().toString().padStart(2, '0')}:${nowReset.getMinutes().toString().padStart(2, '0')}`;
+        }
+        function checkAlarms(now) {
+            const currentDate = now.getFullYear() + '-' +
+                String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                String(now.getDate()).padStart(2, '0');
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+
+            alarms.forEach(alarm => {
+                if (alarm.active && alarm.date === currentDate && !alarm.triggered) {
+                    const [alarmHour, alarmMinute] = alarm.time.split(':').map(Number);
+                    if (
+                        (alarmHour < currentHour) ||
+                        (alarmHour === currentHour && alarmMinute <= currentMinute)
+                    ) {
+                        triggerAlarm(alarm.id);
+                        alarm.triggered = true;
+                    }
+                }
+            });
+            saveAlarms();
+        }
+        function triggerAlarm(alarmId) {
+            const alarmIndex = alarms.findIndex(a => a.id === alarmId);
+            if (alarmIndex === -1) return;
+            
+            const alarm = alarms[alarmIndex];
+            playAlarmSound();
+            const alarmNotification = document.createElement('div');
+            alarmNotification.className = 'fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50';
+            alarmNotification.innerHTML = `
+                <div class="bg-gray-800 rounded-xl p-8 max-w-md w-full mx-4 text-center glow">
+                    <h3 class="text-2xl font-bold text-blue-400 mb-4">${alarm.title}</h3>
+                    <p class="text-xl mb-6">It's time! ${alarm.time}</p>
+                    <div class="flex space-x-4 justify-center">
+                        <button class="snooze-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                            Snooze (${settings.snoozeDuration} min)
+                        </button>
+                        <button class="dismiss-btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                            Dismiss
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(alarmNotification);
+            alarmNotification.querySelector('.snooze-btn').addEventListener('click', () => {
+                snoozeAlarm(alarmId);
+                document.body.removeChild(alarmNotification);
+            });
+            
+            alarmNotification.querySelector('.dismiss-btn').addEventListener('click', () => {
+                stopAlarmSound();
+                document.body.removeChild(alarmNotification);
+            });
+            alarms[alarmIndex].active = false;
+            saveAlarms();
+            renderAlarms();
+        }
+        function snoozeAlarm(alarmId) {
+            stopAlarmSound();
+            
+            const alarm = alarms.find(a => a.id === alarmId);
+            if (!alarm) return;
+            const now = new Date();
+            const snoozeTime = new Date(now.getTime() + settings.snoozeDuration * 60000);
+            
+            const snoozeDate = snoozeTime.toISOString().split('T')[0];
+            const snoozeTimeStr = `${snoozeTime.getHours().toString().padStart(2, '0')}:${snoozeTime.getMinutes().toString().padStart(2, '0')}`;
+            const snoozeAlarm = {
+                id: `snooze-${Date.now()}`,
+                title: `Snooze: ${alarm.title}`,
+                date: snoozeDate,
+                time: snoozeTimeStr,
+                active: true,
+                isSnooze: true,
+                triggered: false
+            };
+            
+            alarms.push(snoozeAlarm);
+            saveAlarms();
+            renderAlarms();
+        }
+        function playAlarmSound() {
+            stopAlarmSound();
+            currentAlarmSound = alarmSounds[settings.selectedSound];
+            currentAlarmSound.currentTime = 0;
+            currentAlarmSound.loop = true;
+            currentAlarmSound.play().catch(e => console.error('Audio play failed:', e));
+        }
+        function stopAlarmSound() {
+            if (currentAlarmSound) {
+                currentAlarmSound.pause();
+                currentAlarmSound.currentTime = 0;
+                currentAlarmSound = null;
+            }
+        }
+        function renderAlarms() {
+            if (alarms.length === 0) {
+                noAlarmsMessage.classList.remove('hidden');
+                alarmListElement.innerHTML = '<h3 class="text-xl font-semibold mb-4 text-blue-400">Your Alarms</h3>';
+                alarmListElement.appendChild(noAlarmsMessage);
+                return;
+            }
+            
+            noAlarmsMessage.classList.add('hidden');
+            const sortedAlarms = [...alarms].sort((a, b) => {
+                const dateA = new Date(`${a.date}T${a.time}`);
+                const dateB = new Date(`${b.date}T${b.time}`);
+                return dateA - dateB;
+            });
+            
+            alarmListElement.innerHTML = '<h3 class="text-xl font-semibold mb-4 text-blue-400">Your Alarms</h3>';
+            
+            sortedAlarms.forEach(alarm => {
+                const alarmItem = document.createElement('div');
+                alarmItem.className = 'alarm-item bg-gray-700 rounded-lg p-4 flex justify-between items-center';
+                alarmItem.dataset.id = alarm.id;
+
+                const now = new Date();
+                const alarmDate = new Date(`${alarm.date}T${alarm.time}`);
+                const isPast = alarmDate < now;
+
+                alarmItem.innerHTML = `
+                    <div class="flex-1">
+                        <div class="font-semibold ${isPast ? 'text-gray-500' : 'text-white'}">${alarm.title}</div>
+                        <div class="text-sm ${isPast ? 'text-gray-600' : 'text-gray-400'}">
+                            ${formatDate(alarm.date)} at ${alarm.time}
+                            ${alarm.isSnooze ? '<span class="ml-2 text-xs bg-blue-500 text-white px-2 py-1 rounded">Snooze</span>' : ''}
+                            ${!alarm.active ? '<span class="ml-2 text-xs bg-gray-500 text-white px-2 py-1 rounded">Inactive</span>' : ''}
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button class="delete-btn p-2 text-red-400 hover:text-red-300 rounded-full hover:bg-gray-600 transition">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                
+                alarmListElement.appendChild(alarmItem);
+                alarmItem.querySelector('.delete-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteAlarm(alarm.id);
+                });
+            });
+        }
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+        }
+        function deleteAlarm(alarmId) {
+            alarms = alarms.filter(alarm => alarm.id !== alarmId);
+            saveAlarms();
+            renderAlarms();
+        }
+        function editAlarm(alarmId) {
+            const alarm = alarms.find(a => a.id === alarmId);
+            if (!alarm) return;
+            alarmTitleInput.value = alarm.title;
+            alarmDateInput.value = alarm.date;
+            alarmTimeInput.value = alarm.time;
+            alarms = alarms.filter(a => a.id !== alarmId);
+            saveAlarms();
+            renderAlarms();
+            alarmTitleInput.focus();
+        }
+        function saveAlarms() {
+            localStorage.setItem('alarms', JSON.stringify(alarms));
+        }
+        function loadAlarms() {
+            const savedAlarms = localStorage.getItem('alarms');
+            if (savedAlarms) {
+                alarms = JSON.parse(savedAlarms);
+                renderAlarms();
+            }
+        }
+        function saveSettings() {
+            localStorage.setItem('alarmSettings', JSON.stringify(settings));
+            settingsModal.classList.add('hidden');
+            ringtoneOptions.forEach(option => {
+                option.classList.remove('selected');
+                if (option.dataset.sound === settings.selectedSound) {
+                    option.classList.add('selected');
+                }
+            });
+        }
+        function loadSettings() {
+            const savedSettings = localStorage.getItem('alarmSettings');
+            if (savedSettings) {
+                settings = JSON.parse(savedSettings);
+                snoozeDurationSelect.value = settings.snoozeDuration;
+                ringtoneOptions.forEach(option => {
+                    option.classList.remove('selected');
+                    if (option.dataset.sound === settings.selectedSound) {
+                        option.classList.add('selected');
+                    }
+                });
+            }
+        }
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
