@@ -1,0 +1,20 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- main   # change to 'master' if that's your branch
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- script: echo "Static HTML site - nothing to build"
+  displayName: 'Build skipped'
+
+# Save your HTML, CSS, JS as a pipeline artifact
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathToPublish: '$(Build.SourcesDirectory)'
+    artifactName: 'website'
