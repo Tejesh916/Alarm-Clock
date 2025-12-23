@@ -95,6 +95,3 @@ B.Tech Computer Science
 ---
 
 ⭐ If you like this project, consider giving it a star!
-
-## 📂 Project Structure
-
